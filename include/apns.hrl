@@ -23,6 +23,7 @@
                           info_logger_fun   = fun error_logger:info_msg/2           :: fun((string(), list()) -> _)
                           }).
 -record(apns_msg, {id = apns:message_id()       :: binary(),
+									 'mutable-content'            :: non_neg_integer(),
                    expiry = apns:expiry(86400)  :: non_neg_integer(), %% default = 1 day
                    device_token                 :: string(),
                    content_available = false    :: boolean(),

@@ -196,7 +196,7 @@ handle_cast(Msg, State) when is_record(Msg, apns_msg) ->
       Payload = build_payload(Msg),
       BinToken = hexstr_to_bin(Msg#apns_msg.device_token),
       apns_queue:in(State#state.queue, Msg),
-      case send_payload(State, Msg#apns_msg.id, Msg#apns_msg.expiry,
+      case send_payload(State, Msg#apns_msg.id, Msg#apns_msg.'mutable-content', Msg#apns_msg.expiry,
                         BinToken, Payload, Msg#apns_msg.priority) of
         ok ->
           {noreply, State#state{out_expires = Timeout}};
@@ -373,6 +373,7 @@ do_build_payload([{Key, Value} | Params], Payload) ->
 do_build_payload([], Payload) ->
   {Payload}.
 
+
 -spec send_payload(tuple(), binary(), non_neg_integer(),
     binary(), binary(), integer()) ->   ok | {error, term()}.
 send_payload(#state{out_socket = Socket
@@ -380,6 +381,21 @@ send_payload(#state{out_socket = Socket
                    , name = Name}, MsgId, Expiry, BinToken
             , Payload, Priority) ->
     Frame = build_frame(MsgId, Expiry, BinToken, Payload, Priority),
+    FrameLength = erlang:size(Frame),
+    Packet = [<<2:8,
+                FrameLength:32/big,
+                Frame/binary>>],
+    InfoLoggerFun("[ ~p ] Sending msg ~p (expires on ~p)",
+                         [Name, MsgId, Expiry]),
+    ssl:send(Socket, Packet).
+
+-spec send_payload(tuple(), binary(), non_neg_integer(), non_neg_integer(),
+    binary(), binary(), integer()) ->   ok | {error, term()}.
+send_payload(#state{out_socket = Socket
+                   , info_logger_fun = InfoLoggerFun
+                   , name = Name}, MsgId, MutableContent, Expiry, BinToken
+            , Payload, Priority) ->
+    Frame = build_frame(MsgId, MutableContent, Expiry, BinToken, Payload, Priority),
     FrameLength = erlang:size(Frame),
     Packet = [<<2:8,
                 FrameLength:32/big,
@@ -416,12 +432,21 @@ parse_status(7) -> missing_payload_size;
 parse_status(8) -> invalid_token;
 parse_status(10) -> shutdown;
 parse_status(_) -> unknown.
-%
+
 build_frame(MsgId, Expiry, BinToken, Payload, Priority) ->
   PayloadLength = erlang:size(Payload),
   <<1:8, 32:16/big, BinToken/binary, 
     2:8, PayloadLength:16/big, Payload/binary,
     3:8, 4:16/big, MsgId/binary,
+    4:8, 4:16/big, Expiry:4/big-unsigned-integer-unit:8,
+    5:8, 1:16/big, Priority:8>>.
+
+build_frame(MsgId, MutableContent, Expiry, BinToken, Payload, Priority) ->
+  PayloadLength = erlang:size(Payload),
+  <<1:8, 32:16/big, BinToken/binary, 
+    2:8, PayloadLength:16/big, Payload/binary,
+    3:8, 4:16/big, MsgId/binary,
+		 4:8, 4:16/big, MutableContent:4/big-unsigned-integer-unit:8,
     4:8, 4:16/big, Expiry:4/big-unsigned-integer-unit:8,
     5:8, 1:16/big, Priority:8>>.
 
