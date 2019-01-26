@@ -55,6 +55,7 @@ start_link(Connection) ->
 -spec build_payload(apns:msg()) -> iodata().
 build_payload(Msg) ->
   #apns_msg{ alert = Alert
+					 , 'mutable-content' = MutableContent
            , badge = Badge
            , sound = Sound
            , category = Category
@@ -63,6 +64,7 @@ build_payload(Msg) ->
            , extra = Extra} = Msg,
   build_payload(
     [ {alert, Alert}
+		, {'mutable-content', MutableContent}	
     , {badge, Badge}
     , {category, Category}
     , {sound, Sound}] ++ Apns_Extra, Extra, Content_Available).
@@ -442,11 +444,12 @@ build_frame(MsgId, Expiry, BinToken, Payload, Priority) ->
     5:8, 1:16/big, Priority:8>>.
 
 build_frame(MsgId, MutableContent, Expiry, BinToken, Payload, Priority) ->
+	io:format("MsgId ~p; MutableContent ~p; Expiry ~p; BinToken ~p; Payload ~p; Priority ~p ~n",[MsgId, MutableContent, Expiry, BinToken, Payload, Priority]),
   PayloadLength = erlang:size(Payload),
   <<1:8, 32:16/big, BinToken/binary, 
     2:8, PayloadLength:16/big, Payload/binary,
     3:8, 4:16/big, MsgId/binary,
-		 4:8, 4:16/big, MutableContent:4/big-unsigned-integer-unit:8,
+		4:8, 4:16/big, MutableContent:4/big-unsigned-integer-unit:8,
     4:8, 4:16/big, Expiry:4/big-unsigned-integer-unit:8,
     5:8, 1:16/big, Priority:8>>.
 
