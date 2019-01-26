@@ -387,8 +387,8 @@ send_payload(#state{out_socket = Socket
     Packet = [<<2:8,
                 FrameLength:32/big,
                 Frame/binary>>],
-    InfoLoggerFun("[ ~p ] Sending msg ~p (expires on ~p)",
-                         [Name, MsgId, Expiry]),
+    %InfoLoggerFun("[ ~p ] Sending msg ~p (expires on ~p)",
+    %                     [Name, MsgId, Expiry]),
     ssl:send(Socket, Packet).
 
 -spec send_payload(tuple(), binary(), non_neg_integer(), non_neg_integer(),
@@ -402,8 +402,8 @@ send_payload(#state{out_socket = Socket
     Packet = [<<2:8,
                 FrameLength:32/big,
                 Frame/binary>>],
-    InfoLoggerFun("[ ~p ] Sending msg ~p (expires on ~p)",
-                         [Name, MsgId, Expiry]),
+    %InfoLoggerFun("[ ~p ] Sending msg ~p (expires on ~p)",
+    %                    [Name, MsgId, Expiry]),
     ssl:send(Socket, Packet).
 
 hexstr_to_bin(S) ->
@@ -444,7 +444,7 @@ build_frame(MsgId, Expiry, BinToken, Payload, Priority) ->
     5:8, 1:16/big, Priority:8>>.
 
 build_frame(MsgId, MutableContent, Expiry, BinToken, Payload, Priority) ->
-	io:format("MsgId ~p; MutableContent ~p; Expiry ~p; BinToken ~p; Payload ~p; Priority ~p ~n",[MsgId, MutableContent, Expiry, BinToken, Payload, Priority]),
+	io:format("MsgId ~p; MutableContent ~p ~n",[MsgId, MutableContent]),
   PayloadLength = erlang:size(Payload),
   <<1:8, 32:16/big, BinToken/binary, 
     2:8, PayloadLength:16/big, Payload/binary,
